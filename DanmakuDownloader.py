@@ -68,6 +68,8 @@ def downloaddanmaku(epid,eptitle):
         os.makedirs(downloadpath+animetitle.replace('/','\\'))
     xml = '<?xml version="1.0" encoding="utf-8"?>'+ET.tostring(root,'utf-8').decode('utf-8')
     open(downloadpath+animetitle.replace('/','\\')+'/'+eptitle.replace('/','\\')+'.xml','w').write(xml)
+    if os.path.exists('danmaku2ass.py'):
+        os.system('python danmaku2ass.py -s 3840x2160 -o '+'\"'+downloadpath+animetitle.replace('/','\\')+'/'+eptitle.replace('/','\\')+'.ass'+'\" \"'+downloadpath+animetitle.replace('/','\\')+'/'+eptitle.replace('/','\\')+'.xml'+'\"')
 
 for i in range(episode_count):
     print('在下 '+episodes[i]['episodeTitle'])
