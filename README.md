@@ -12,3 +12,4 @@ python DanmakuDownloader.py <番剧名>
 ```
 python DanmakuDownloader.py
 ```
+如果```danmaku2ass.py```存在，将自动同时保存弹幕为ass字幕
