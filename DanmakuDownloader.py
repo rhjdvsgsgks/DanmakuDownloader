@@ -1,6 +1,5 @@
 import requests
 import json
-from pprint import pprint as pp
 try:
     import xml.etree.cElementTree as ET
 except ImportError:
@@ -36,12 +35,12 @@ episodes = 'null'
 def animelistselector():
     for l in range(len(dict['animes'])):
         print(str(l)+'.'+dict['animes'][l]['animeTitle'])
-    animelistnumber = input('哪个?\n')
+    animelistnumber = input('哪个? ')
     if animelistnumber.isdigit() and int(animelistnumber) in range(len(dict['animes'])):
         global animetitle,episodes
         animetitle = dict['animes'][int(animelistnumber)]['animeTitle']
         episodes = dict['animes'][int(animelistnumber)]['episodes']
-        if input('是 '+animetitle+' ?[y/N]\n') is 'y':
+        if input('是 '+animetitle+' ? [y/N] ') is 'y':
             pass
         else:
             animelistselector()
