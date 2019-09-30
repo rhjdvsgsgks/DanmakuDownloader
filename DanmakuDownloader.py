@@ -55,24 +55,28 @@ episode_count = len(episodes)
 def downloaddanmaku(epid,eptitle):
     danmaku = requests.get( "https://api.acplay.net/api/v2/comment/"+str(epid)+"?withRelated=true" ).text
     dmdict = json.loads(danmaku)
-    root = ET.Element('i')
-    for j in dmdict['comments']:
-        d = ET.SubElement(root, 'd')
-        d.text = j['m']
-        splitedp = re.split(',',j['p'])
-        splitedp[3] = '0'
-        splitedp.insert(2,'25')
-        splitedp.extend(['0','0','0'])
-        d.set('p',",".join(splitedp))
-    if not os.path.exists(downloadpath+animetitle.replace('/','\\')):
-        os.makedirs(downloadpath+animetitle.replace('/','\\'))
-    xml = '<?xml version="1.0" encoding="utf-8"?>'+ET.tostring(root,'utf-8').decode('utf-8')
-    open(downloadpath+animetitle.replace('/','\\')+'/'+eptitle.replace('/','\\')+'.xml','w').write(xml)
-    if os.path.exists('danmaku2ass.py'):
-        os.system('python danmaku2ass.py -s 3840x2160 -o '+'\"'+downloadpath+animetitle.replace('/','\\')+'/'+eptitle.replace('/','\\')+'.ass'+'\" \"'+downloadpath+animetitle.replace('/','\\')+'/'+eptitle.replace('/','\\')+'.xml'+'\"')
+    if dmdict['count'] > 0 :
+        print('在下 '+eptitle)
+        root = ET.Element('i')
+        for j in dmdict['comments']:
+            d = ET.SubElement(root, 'd')
+            d.text = j['m']
+            splitedp = re.split(',',j['p'])
+            if os.path.exists('danmaku2ass.py'):
+                splitedp[3] = '0'
+            splitedp.insert(2,'25')
+            splitedp.extend(['0','0','0'])
+            d.set('p',",".join(splitedp))
+        if not os.path.exists(downloadpath+animetitle.replace('/','\\')):
+            os.makedirs(downloadpath+animetitle.replace('/','\\'))
+        xml = '<?xml version="1.0" encoding="utf-8"?>'+ET.tostring(root,'utf-8').decode('utf-8')
+        open(downloadpath+animetitle.replace('/','\\')+'/'+eptitle.replace('/','\\')+'.xml','w').write(xml)
+        if os.path.exists('danmaku2ass.py'):
+            os.system('python danmaku2ass.py -s 3840x2160 -fs 100 -dm 20 -ds 20 -o '+'\"'+downloadpath+animetitle.replace('/','\\')+'/'+eptitle.replace('/','\\')+'.ass'+'\" \"'+downloadpath+animetitle.replace('/','\\')+'/'+eptitle.replace('/','\\')+'.xml'+'\"')
+    else:
+        print('跳过 '+eptitle)
 
 for i in range(episode_count):
-    print('在下 '+episodes[i]['episodeTitle'])
     downloaddanmaku(episodes[i]['episodeId'],episodes[i]['episodeTitle'])
-
+    
 print(animetitle+' 下好了')
