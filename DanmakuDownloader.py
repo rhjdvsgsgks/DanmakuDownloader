@@ -7,6 +7,16 @@ except ImportError:
 import re
 import os
 import sys
+from getopt import gnu_getopt
+import shutil
+
+optlist, args = gnu_getopt(sys.argv[1:],'i:',['insert'])
+
+for m in range(0,len(optlist)):
+    if str(optlist[m][0]) == str('-i'):
+        insertdanmakupath = optlist[m][1]
+        if 'insertdanmakupath' in dir() and os.path.exists(insertdanmakupath) and os.path.isdir(insertdanmakupath):
+            insertdanmaku = 1
 
 def search():
     global anime
@@ -15,17 +25,18 @@ def search():
         print('不说算了')
         sys.exit()
 
-if len(sys.argv) is 1:
+if len(args) is 0:
     search()
 else:
-    for k in range(1,len(sys.argv)):
-        if k is 1:
-            anime = sys.argv[k]
+    for k in range(0,len(args)):
+        if k is 0:
+            anime = args[k]
         else:
-            anime = anime+' '+sys.argv[k]
+            anime = anime+' '+args[k]
 
-getepisode =  "https://api.acplay.net/api/v2/search/episodes?anime="
-downloadpath = "/sdcard/danmakudownload/"
+getepisode = "https://api.acplay.net/api/v2/search/episodes?anime="
+downloadpath = "/sdcard/danmaku/"
+subtitlepath = "/storage/emulated/0/Subtitles/"
 
 def get():
     global response,dict
@@ -34,10 +45,14 @@ def get():
 
 get()
 
-if not dict['animes']:
-    print('404')
-    search()
-    get()
+def notempty():
+    if not dict['animes']:
+        print('404')
+        search()
+        get()
+        notempty()
+
+notempty()
 
 animetitle = 'nill'
 episodes = 'null'
@@ -72,31 +87,45 @@ animelistselector()
 
 episode_count = len(episodes)
 
-def downloaddanmaku(epid,eptitle):
+def downloaddanmaku(epid,eptitle,numberinlist):
     danmaku = requests.get( "https://api.acplay.net/api/v2/comment/"+str(epid)+"?withRelated=true" ).text
     dmdict = json.loads(danmaku)
     if dmdict['count'] > 0 :
-        print('在下 '+eptitle)
-        root = ET.Element('i')
+        if 'insertdanmaku' in globals() and insertdanmaku is 1:
+            #print(将 插入 )
+            if not os.path.exists(insertdanmakupath+'/'+str(numberinlist)+'/danmaku.xml.bak'):
+                shutil.copy2(insertdanmakupath+'/'+str(numberinlist)+'/danmaku.xml', insertdanmakupath+'/'+str(numberinlist)+'/danmaku.xml.bak')
+            else:
+                shutil.copy2(insertdanmakupath+'/'+str(numberinlist)+'/danmaku.xml.bak', insertdanmakupath+'/'+str(numberinlist)+'/danmaku.xml')
+            orixml = ET.parse(insertdanmakupath+'/'+str(numberinlist)+'/danmaku.xml')
+            root = orixml.getroot()
+        else:
+            print('在下 '+eptitle)
+            root = ET.Element('i')
         for j in dmdict['comments']:
             d = ET.SubElement(root, 'd')
             d.text = j['m']
             splitedp = re.split(',',j['p'])
-            if os.path.exists('danmaku2ass.py'):
+            if os.path.exists('danmaku2ass.py') and os.path.isfile('danmaku2ass.py'):
                 splitedp[3] = '0'
             splitedp.insert(2,'25')
             splitedp.extend(['0','0','0'])
             d.set('p',",".join(splitedp))
-        if not os.path.exists(downloadpath+animetitle.replace('/','\\')):
-            os.makedirs(downloadpath+animetitle.replace('/','\\'))
-        xml = '<?xml version="1.0" encoding="utf-8"?>'+ET.tostring(root,'utf-8').decode('utf-8')
-        open(downloadpath+animetitle.replace('/','\\')+'/'+eptitle.replace('/','\\')+'.xml','w').write(xml)
-        if os.path.exists('danmaku2ass.py'):
-            os.system('python danmaku2ass.py -s 3840x2160 -fs 100 -dm 30 -ds 30 -o '+'\"'+downloadpath+animetitle.replace('/','\\')+'/'+eptitle.replace('/','\\')+'.ass'+'\" \"'+downloadpath+animetitle.replace('/','\\')+'/'+eptitle.replace('/','\\')+'.xml'+'\"')
+        xml = '<?xml version="1.0" encoding="UTF-8"?>'+ET.tostring(root,'utf-8').decode('utf-8')
+        if 'insertdanmaku' in globals() and insertdanmaku is 1:
+            open(insertdanmakupath+'/'+str(numberinlist)+'/danmaku.xml','w').write(xml)
+        else:
+            if not os.path.exists(downloadpath+animetitle.replace('/','\\')):
+                os.makedirs(downloadpath+animetitle.replace('/','\\'))
+            open(downloadpath+animetitle.replace('/','\\')+'/'+eptitle.replace('/','\\')+'.xml','w').write(xml)
+            if os.path.exists('danmaku2ass.py') and os.path.isfile('danmaku2ass.py'):
+                if not os.path.exists(subtitlepath+animetitle.replace('/','\\')):
+                    os.makedirs(subtitlepath+animetitle.replace('/','\\'))
+                os.system('python danmaku2ass.py -s 3840x2160 -fs 100 -dm 30 -ds 30 -o '+'\"'+subtitlepath+animetitle.replace('/','\\')+'/'+eptitle.replace('/','\\')+'.ass'+'\" \"'+downloadpath+animetitle.replace('/','\\')+'/'+eptitle.replace('/','\\')+'.xml'+'\"')
     else:
         print('跳过 '+eptitle)
 
 for i in range(episode_count):
-    downloaddanmaku(episodes[i]['episodeId'],episodes[i]['episodeTitle'])
+    downloaddanmaku(episodes[i]['episodeId'],episodes[i]['episodeTitle'],i+1)
 
 print(animetitle+' 下好了')
