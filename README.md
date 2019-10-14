@@ -13,9 +13,13 @@ python DanmakuDownloader.py <番剧名>
 ```
 python DanmakuDownloader.py
 ```
-如果```danmaku2ass.py```存在，将自动同时保存弹幕为ass字幕
+如果```danmaku2ass.py```存在，将自动同时保存弹幕为ass字幕  
+
+使用```-i/--insert <视频路径>```可将弹幕插入到视频中
 
 # TODO
+- [x] 弹幕插入视频
+- [ ] 弹幕插入番剧
 - [ ] 多线程下载
 - [ ] 从搜索到的多部番剧批量下载
 - [ ] 从番剧名称列表文件批量下载
