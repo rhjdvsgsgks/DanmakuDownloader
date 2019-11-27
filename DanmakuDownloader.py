@@ -9,14 +9,16 @@ import os
 import sys
 from getopt import gnu_getopt
 import shutil
+from copy import deepcopy
 
 optlist, args = gnu_getopt(sys.argv[1:],'i:',['insert'])
 
-for m in range(0,len(optlist)):
+for m in range(len(optlist)):
     if str(optlist[m][0]) == str('-i'):
         insertdanmakupath = optlist[m][1]
         if 'insertdanmakupath' in dir() and os.path.exists(insertdanmakupath) and os.path.isdir(insertdanmakupath):
-            insertdanmaku = 1
+            insertdanmaku = True
+
 
 def search():
     global anime
@@ -25,11 +27,12 @@ def search():
         print('不说算了')
         sys.exit()
 
-if len(args) is 0:
+
+if len(args) == 0:
     search()
 else:
-    for k in range(0,len(args)):
-        if k is 0:
+    for k in range(len(args)):
+        if k == 0:
             anime = args[k]
         else:
             anime = anime+' '+args[k]
@@ -38,12 +41,15 @@ getepisode = "https://api.acplay.net/api/v2/search/episodes?anime="
 downloadpath = "/sdcard/danmaku/"
 subtitlepath = "/storage/emulated/0/Subtitles/"
 
+
 def get():
     global response,dict
     response = requests.get( getepisode + anime ).text
     dict = json.loads(response)
 
+
 get()
+
 
 def notempty():
     if not dict['animes']:
@@ -52,20 +58,23 @@ def notempty():
         get()
         notempty()
 
+
 notempty()
 
 animetitle = 'nill'
 episodes = 'null'
+
+
 def animelistselector():
-    if not len(dict['animes']) is 1:
+    if not len(dict['animes']) == 1:
         for l in range(len(dict['animes'])):
-            print(str(l)+'.'+dict['animes'][l]['animeTitle'])
+            print(str(l)+' '+dict['animes'][l]['animeTitle'])
         animelistnumber = input('哪个? ')
         if animelistnumber.isdigit() and int(animelistnumber) in range(len(dict['animes'])):
             global animetitle,episodes
             animetitle = dict['animes'][int(animelistnumber)]['animeTitle']
             episodes = dict['animes'][int(animelistnumber)]['episodes']
-            if input('是 '+animetitle+' ? [y/N] ') is 'y':
+            if input('是 '+animetitle+' ? [y/N] ') == 'y':
                 pass
             else:
                 animelistselector()
@@ -75,7 +84,7 @@ def animelistselector():
     else:
         animetitle = dict['animes'][0]['animeTitle']
         episodes = dict['animes'][0]['episodes']
-        if input('是 '+animetitle+' ? [y/N] ') is 'y':
+        if input('是 '+animetitle+' ? [y/N] ') == 'y':
             pass
         else:
             print('404')
@@ -83,19 +92,23 @@ def animelistselector():
             get()
             animelistselector()
 
+
 animelistselector()
 
 episode_count = len(episodes)
 
-def downloaddanmaku(epid,eptitle,numberinlist):
+
+def downloaddanmaku(epid,eptitle,numberinlist='',ptitle=''):
     danmaku = requests.get( "https://api.acplay.net/api/v2/comment/"+str(epid)+"?withRelated=true" ).text
     dmdict = json.loads(danmaku)
     if dmdict['count'] > 0 :
-        if 'insertdanmaku' in globals() and insertdanmaku is 1:
-            #print(将 插入 )
+        if numberinlist != '':
+            # 插入弹幕
             if not os.path.exists(insertdanmakupath+'/'+str(numberinlist)+'/danmaku.xml.bak'):
+                # 备份未插入的xml
                 shutil.copy2(insertdanmakupath+'/'+str(numberinlist)+'/danmaku.xml', insertdanmakupath+'/'+str(numberinlist)+'/danmaku.xml.bak')
             else:
+                # 从备份恢复
                 shutil.copy2(insertdanmakupath+'/'+str(numberinlist)+'/danmaku.xml.bak', insertdanmakupath+'/'+str(numberinlist)+'/danmaku.xml')
             orixml = ET.parse(insertdanmakupath+'/'+str(numberinlist)+'/danmaku.xml')
             root = orixml.getroot()
@@ -106,13 +119,23 @@ def downloaddanmaku(epid,eptitle,numberinlist):
             d = ET.SubElement(root, 'd')
             d.text = j['m']
             splitedp = re.split(',',j['p'])
-            if os.path.exists('danmaku2ass.py') and os.path.isfile('danmaku2ass.py'):
+            if os.path.exists('danmaku2ass.py') and os.path.isfile('danmaku2ass.py') or numberinlist != '':
+                # danmaku2ass遇到发送者包含非数字内容会出错
                 splitedp[3] = '0'
             splitedp.insert(2,'25')
             splitedp.extend(['0','0','0'])
             d.set('p',",".join(splitedp))
+        if numberinlist != '':
+            # 插入弹幕
+            print('从 '+eptitle+' 向 '+ptitle+' 插入了 '+str(dmdict['count'])+' 条弹幕,共 '+str(len(root.findall('d')))+' 条弹幕')
+            with open(insertdanmakupath+'/'+str(numberinlist)+'/entry.json','r') as entryjson:
+                entryjsondict = json.load(entryjson)
+            entryjsondict['danmaku_count'] = len(root.findall('d'))
+            with open(insertdanmakupath+'/'+str(numberinlist)+'/entry.json','w') as entryjson:
+                json.dump(entryjsondict,entryjson)
         xml = '<?xml version="1.0" encoding="UTF-8"?>'+ET.tostring(root,'utf-8').decode('utf-8')
-        if 'insertdanmaku' in globals() and insertdanmaku is 1:
+        if numberinlist != '':
+            # 插入弹幕,写回原xml
             open(insertdanmakupath+'/'+str(numberinlist)+'/danmaku.xml','w').write(xml)
         else:
             if not os.path.exists(downloadpath+animetitle.replace('/','\\')):
@@ -121,11 +144,72 @@ def downloaddanmaku(epid,eptitle,numberinlist):
             if os.path.exists('danmaku2ass.py') and os.path.isfile('danmaku2ass.py'):
                 if not os.path.exists(subtitlepath+animetitle.replace('/','\\')):
                     os.makedirs(subtitlepath+animetitle.replace('/','\\'))
-                os.system('python danmaku2ass.py -s 3840x2160 -fs 100 -dm 30 -ds 30 -o '+'\"'+subtitlepath+animetitle.replace('/','\\')+'/'+eptitle.replace('/','\\')+'.ass'+'\" \"'+downloadpath+animetitle.replace('/','\\')+'/'+eptitle.replace('/','\\')+'.xml'+'\"')
+                os.system('python danmaku2ass.py -s 3840x2160 -fs 100 -dm 30 -ds 30 -p 103 -o '+'\"'+subtitlepath+animetitle.replace('/','\\')+'/'+eptitle.replace('/','\\')+'.ass'+'\" \"'+downloadpath+animetitle.replace('/','\\')+'/'+eptitle.replace('/','\\')+'.xml'+'\"')
     else:
         print('跳过 '+eptitle)
 
-for i in range(episode_count):
-    downloaddanmaku(episodes[i]['episodeId'],episodes[i]['episodeTitle'],i+1)
+
+if 'insertdanmaku' in globals() and insertdanmaku is True:
+    # 插入弹幕
+    entrydirlist = os.listdir(insertdanmakupath)
+    epcount = len(entrydirlist)
+    indexep = {}
+    indextitle = {}
+    for n in range(len(entrydirlist)):
+        with open(insertdanmakupath+'/'+entrydirlist[n]+'/entry.json','r') as entryjson:
+            entryjsondict = json.load(entryjson)
+        if 'avid' in entryjsondict :
+            # 视频
+            indexep[int(entryjsondict['page_data']['page'])],indextitle[int(entryjsondict['page_data']['page'])] = int(entrydirlist[n]),entryjsondict['page_data']['part']
+        else:
+            # 番剧
+            indexep[int(entryjsondict['ep']['index'])],indextitle[int(entryjsondict['ep']['index'])] = int(entryjsondict['ep']['episode_id']),entryjsondict['ep']['index_title']
+    existep = list(indextitle.keys())
+    hasextraep = False
+    for p in range(episode_count):
+        if episodes[p]['episodeTitle'][0] == 'S':
+            # 判断有附加p
+            hasextraep = True
+            break
+    if hasextraep is True:
+        # 有附加p,根据每p名称重新排序
+        sortedep = ['']*episode_count
+        episodesnonumber = deepcopy(episodes)
+        for o in range(episode_count):
+            splitedep = re.split(' ',episodesnonumber[o]['episodeTitle'])
+            del splitedep[0]
+            episodesnonumber[o]['episodeTitle'] = ' '.join(splitedep)
+            for p in existep:
+                if episodesnonumber[o]['episodeTitle'] == indextitle[p]:
+                    sortedep[p-1] = episodes[o]
+                    episodes[o] = ''
+        if len([x for x in sortedep if x != '']) != epcount:
+            #判断非空位
+            print('有多出来的,使用id匹配')
+            余 = [y for y in indextitle if [y != x for x in [int(str(x['episodeId'])[-4:]) for x in sortedep if x != '']][0]]
+            for i in 余:
+                if input(str(i)+' '+indextitle[i]+' 是 '+episodes[i-1]['episodeTitle']+' ? [y/N] ') == 'y':
+                    sortedep[i-1] = episodes[i-1]
+                    episodes[i-1] = ''
+        if len([sortedep[x-1] for x in indextitle.keys() if sortedep[x-1] == '']) > 0:
+            #判断在按本地ep排序的episodes中有几个空位
+            print('还是有多的，使用手动匹配')
+            for i in indextitle.keys():
+                if sortedep[i-1] == '':
+                    for k in [j for j in range(len(episodes)) if episodes[j] != '']:
+                        print(str(k)+' '+episodes[k]['episodeTitle'])
+                    selectepisode = int(input(str(i)+' '+indextitle[i]+'是? '))
+                    sortedep[i-1] = episodes[selectepisode]
+                    episodes[selectepisode] = ''
+        for i in indexep.keys():
+            downloaddanmaku(sortedep[i-1]['episodeId'],sortedep[i-1]['episodeTitle'],indexep[i],indextitle[i])
+    else:
+        # 没附加p
+        for i in indexep.keys():
+            downloaddanmaku(episodes[i-1]['episodeId'],episodes[i-1]['episodeTitle'],indexep[i],indextitle[i])
+else:
+    # 正常下载
+    for i in range(episode_count):
+        downloaddanmaku(episodes[i]['episodeId'],episodes[i]['episodeTitle'])
 
 print(animetitle+' 下好了')
