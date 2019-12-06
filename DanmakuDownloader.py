@@ -144,7 +144,7 @@ def downloaddanmaku(epid,eptitle,numberinlist='',ptitle=''):
             if os.path.exists('danmaku2ass.py') and os.path.isfile('danmaku2ass.py'):
                 if not os.path.exists(subtitlepath+animetitle.replace('/','\\')):
                     os.makedirs(subtitlepath+animetitle.replace('/','\\'))
-                os.system('python danmaku2ass.py -s 3840x2160 -fs 100 -dm 30 -ds 30 -p 103 -o '+'\"'+subtitlepath+animetitle.replace('/','\\')+'/'+eptitle.replace('/','\\')+'.ass'+'\" \"'+downloadpath+animetitle.replace('/','\\')+'/'+eptitle.replace('/','\\')+'.xml'+'\"')
+                os.system('python danmaku2ass.py -s 3840x2160 -fs 85 -dm 20 -ds 20 -p 103 -o '+'\"'+subtitlepath+animetitle.replace('/','\\')+'/'+eptitle.replace('/','\\')+'.ass'+'\" \"'+downloadpath+animetitle.replace('/','\\')+'/'+eptitle.replace('/','\\')+'.xml'+'\"')
     else:
         print('跳过 '+eptitle)
 
@@ -186,8 +186,10 @@ if 'insertdanmaku' in globals() and insertdanmaku is True:
         if len([x for x in sortedep if x != '']) != epcount:
             #判断非空位
             print('有多出来的,使用id匹配')
-            余 = [y for y in indextitle if [y != x for x in [int(str(x['episodeId'])[-4:]) for x in sortedep if x != '']][0]]
-            for i in 余:
+            #在sortedep中非空的所有ep的集数总和大于零且其中每项不在本地indextitle列表中的项组成的列表
+            #unusedepisodes = [z for z in indextitle if len([z != y for y in [int(str(x['episodeId'])[-4:]) for x in sortedep if x != '']]) > 0 and [z != y for y in [int(str(x['episodeId'])[-4:]) for x in sortedep if x != '']]]
+            unusedepisodes = [x for x in indextitle if sortedep[x-1] == '']
+            for i in unusedepisodes:
                 if input(str(i)+' '+indextitle[i]+' 是 '+episodes[i-1]['episodeTitle']+' ? [y/N] ') == 'y':
                     sortedep[i-1] = episodes[i-1]
                     episodes[i-1] = ''
