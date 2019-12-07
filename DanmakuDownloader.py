@@ -29,7 +29,12 @@ def search():
 
 
 if len(args) == 0:
-    search()
+    if insertdanmaku is True:
+        with open(insertdanmakupath+'/'+os.listdir(insertdanmakupath)[0]+'/entry.json','r') as entryjson:
+            entryjsondict = json.load(entryjson)
+            anime = entryjsondict['title']
+    else:
+        search()
 else:
     for k in range(len(args)):
         if k == 0:
