@@ -10,6 +10,7 @@ import sys
 from getopt import gnu_getopt
 import shutil
 from copy import deepcopy
+import threading
 
 optlist, args = gnu_getopt(sys.argv[1:],'i:',['insert'])
 
@@ -79,7 +80,8 @@ def animelistselector():
             global animetitle,episodes
             animetitle = dict['animes'][int(animelistnumber)]['animeTitle']
             episodes = dict['animes'][int(animelistnumber)]['episodes']
-            if input('是 '+animetitle+' ? [y/N] ') == 'y':
+            tempinput = input('是 '+animetitle+' ? [Y/n] ')
+            if tempinput == 'y' or tempinput == '':
                 pass
             else:
                 animelistselector()
@@ -89,7 +91,8 @@ def animelistselector():
     else:
         animetitle = dict['animes'][0]['animeTitle']
         episodes = dict['animes'][0]['episodes']
-        if input('是 '+animetitle+' ? [y/N] ') == 'y':
+        tempinput = input('是 '+animetitle+' ? [Y/n] ')
+        if tempinput == 'y' or tempinput == '':
             pass
         else:
             print('404')
@@ -185,7 +188,7 @@ if 'insertdanmaku' in globals() and insertdanmaku is True:
             del splitedep[0]
             episodesnonumber[o]['episodeTitle'] = ' '.join(splitedep)
             for p in existep:
-                if episodesnonumber[o]['episodeTitle'] == indextitle[p]:
+                if episodesnonumber[o]['episodeTitle'].lower() == indextitle[p].lower():
                     sortedep[p-1] = episodes[o]
                     episodes[o] = ''
         if len([x for x in sortedep if x != '']) != epcount:
@@ -195,7 +198,8 @@ if 'insertdanmaku' in globals() and insertdanmaku is True:
             #unusedepisodes = [z for z in indextitle if len([z != y for y in [int(str(x['episodeId'])[-4:]) for x in sortedep if x != '']]) > 0 and [z != y for y in [int(str(x['episodeId'])[-4:]) for x in sortedep if x != '']]]
             unusedepisodes = [x for x in indextitle if sortedep[x-1] == '']
             for i in unusedepisodes:
-                if input(str(i)+' '+indextitle[i]+' 是 '+episodes[i-1]['episodeTitle']+' ? [y/N] ') == 'y':
+                tempinput = input(str(i)+' '+indextitle[i]+' 是 '+episodes[i-1]['episodeTitle']+' ? [Y/n] ')
+                if tempinput == 'y' or tempinput == '':
                     sortedep[i-1] = episodes[i-1]
                     episodes[i-1] = ''
         if len([sortedep[x-1] for x in indextitle.keys() if sortedep[x-1] == '']) > 0:
@@ -208,15 +212,18 @@ if 'insertdanmaku' in globals() and insertdanmaku is True:
                     selectepisode = int(input(str(i)+' '+indextitle[i]+'是? '))
                     sortedep[i-1] = episodes[selectepisode]
                     episodes[selectepisode] = ''
-        for i in indexep.keys():
-            downloaddanmaku(sortedep[i-1]['episodeId'],sortedep[i-1]['episodeTitle'],indexep[i],indextitle[i])
+        threads = [threading.Thread(target=downloaddanmaku,args=[sortedep[i-1]['episodeId'],sortedep[i-1]['episodeTitle'],indexep[i],indextitle[i]]) for i in indexep.keys()]
     else:
         # 没附加p
-        for i in indexep.keys():
-            downloaddanmaku(episodes[i-1]['episodeId'],episodes[i-1]['episodeTitle'],indexep[i],indextitle[i])
+        threads = [threading.Thread(target=downloaddanmaku,args=[episodes[i-1]['episodeId'],episodes[i-1]['episodeTitle'],indexep[i],indextitle[i]]) for i in indexep.keys()]
 else:
     # 正常下载
-    for i in range(episode_count):
-        downloaddanmaku(episodes[i]['episodeId'],episodes[i]['episodeTitle'])
+    threads = [threading.Thread(target=downloaddanmaku,args=[episodes[i]['episodeId'],episodes[i]['episodeTitle']]) for i in range(episode_count)]
+
+for i in threads:
+    i.start()
+
+for i in threads:
+    i.join()
 
 print(animetitle+' 下好了')
