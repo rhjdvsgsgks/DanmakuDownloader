@@ -12,13 +12,26 @@ import shutil
 from copy import deepcopy
 import threading
 
-optlist, args = gnu_getopt(sys.argv[1:],'i:',['insert'])
+optlist, args = gnu_getopt(sys.argv[1:],'i:r')
 
 for m in range(len(optlist)):
-    if str(optlist[m][0]) == str('-i'):
+    if optlist[m][0] == '-i':
         insertdanmakupath = optlist[m][1]
         if 'insertdanmakupath' in dir() and os.path.exists(insertdanmakupath) and os.path.isdir(insertdanmakupath):
             insertdanmaku = True
+
+for m in range(len(optlist)):
+    if optlist[m][0] == '-r' and insertdanmaku:
+        for i in os.listdir(insertdanmakupath):
+            if os.path.exists(insertdanmakupath+'/'+i+'/danmaku.xml.bak') and os.path.isfile(insertdanmakupath+'/'+i+'/danmaku.xml.bak'):
+                restoreinsertdanmaku = True
+            else:
+                print('没找到 .bak')
+                sys.exit()
+
+if 'restoreinsertdanmaku' in dir() and restoreinsertdanmaku:
+    [shutil.move(insertdanmakupath+'/'+i+'/danmaku.xml.bak', insertdanmakupath+'/'+i+'/danmaku.xml') for i in os.listdir(insertdanmakupath) if os.path.exists(insertdanmakupath+'/'+i+'/danmaku.xml.bak') and os.path.isfile(insertdanmakupath+'/'+i+'/danmaku.xml.bak')]
+    sys.exit()
 
 
 def search():
@@ -30,7 +43,7 @@ def search():
 
 
 if len(args) == 0:
-    if insertdanmaku is True:
+    if 'insertdanmaku' in dir() and insertdanmaku is True:
         with open(insertdanmakupath+'/'+os.listdir(insertdanmakupath)[0]+'/entry.json','r') as entryjson:
             entryjsondict = json.load(entryjson)
             anime = entryjsondict['title']
@@ -157,7 +170,7 @@ def downloaddanmaku(epid,eptitle,numberinlist='',ptitle=''):
         print('跳过 '+eptitle)
 
 
-if 'insertdanmaku' in globals() and insertdanmaku is True:
+if 'insertdanmaku' in dir() and insertdanmaku is True:
     # 插入弹幕
     entrydirlist = os.listdir(insertdanmakupath)
     epcount = len(entrydirlist)
@@ -194,8 +207,6 @@ if 'insertdanmaku' in globals() and insertdanmaku is True:
         if len([x for x in sortedep if x != '']) != epcount:
             #判断非空位
             print('有多出来的,使用id匹配')
-            #在sortedep中非空的所有ep的集数总和大于零且其中每项不在本地indextitle列表中的项组成的列表
-            #unusedepisodes = [z for z in indextitle if len([z != y for y in [int(str(x['episodeId'])[-4:]) for x in sortedep if x != '']]) > 0 and [z != y for y in [int(str(x['episodeId'])[-4:]) for x in sortedep if x != '']]]
             unusedepisodes = [x for x in indextitle if sortedep[x-1] == '']
             for i in unusedepisodes:
                 tempinput = input(str(i)+' '+indextitle[i]+' 是 '+episodes[i-1]['episodeTitle']+' ? [Y/n] ')
