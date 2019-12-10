@@ -11,6 +11,7 @@ from getopt import gnu_getopt
 import shutil
 from copy import deepcopy
 import threading
+from opencc import OpenCC
 
 optlist, args = gnu_getopt(sys.argv[1:],'i:r')
 
@@ -46,7 +47,7 @@ if len(args) == 0:
     if 'insertdanmaku' in dir() and insertdanmaku is True:
         with open(insertdanmakupath+'/'+os.listdir(insertdanmakupath)[0]+'/entry.json','r') as entryjson:
             entryjsondict = json.load(entryjson)
-            anime = entryjsondict['title']
+            anime = OpenCC('t2s').convert(entryjsondict['title'])
     else:
         search()
 else:
