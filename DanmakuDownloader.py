@@ -134,6 +134,14 @@ def downloaddanmaku(epid,eptitle,numberinlist='',ptitle=''):
                 shutil.copy2(insertdanmakupath+'/'+str(numberinlist)+'/danmaku.xml.bak', insertdanmakupath+'/'+str(numberinlist)+'/danmaku.xml')
             orixml = ET.parse(insertdanmakupath+'/'+str(numberinlist)+'/danmaku.xml')
             root = orixml.getroot()
+            #删除dmdict中来源为bilibili并且内容已经在原弹幕中出现过的
+            #for i in dmdict:
+            #    if i in [x['d'] for x in root if x['p'][3][9:] == '[bilibili]']:
+            #        del i
+            remotedanmakufrombilibili = [x for x in dmdict['comments'] if re.split(',',x['p'])[3][:10] == '[BiliBili]']
+            localdanmakufromxml = [x.text for x in root.findall('d')]
+            #远程b站弹幕+远程非b站弹幕且与本地b站弹幕不重复的弹幕
+            dmdict['comments'] = {**[','.join(re.split(',',x['p'])[:3]+[re.split(',',x['p'])[3][10:]]) for x in dmdict['comments'] if x in remotedanmakufrombilibili],**[x for x in dmdict['comments'] if x not in remotedanmakufrombilibili and x['m'] not in localdanmakufromxml]}
         else:
             print('在下 '+eptitle)
             root = ET.Element('i')
@@ -141,7 +149,7 @@ def downloaddanmaku(epid,eptitle,numberinlist='',ptitle=''):
             d = ET.SubElement(root, 'd')
             d.text = j['m']
             splitedp = re.split(',',j['p'])
-            if os.path.exists('danmaku2ass.py') and os.path.isfile('danmaku2ass.py') or numberinlist != '':
+            if os.path.exists('danmaku2ass.py') and os.path.isfile('danmaku2ass.py') and splitedp[3][0] == '[':
                 # danmaku2ass遇到发送者包含非数字内容会出错
                 splitedp[3] = '0'
             splitedp.insert(2,'25')
@@ -149,7 +157,7 @@ def downloaddanmaku(epid,eptitle,numberinlist='',ptitle=''):
             d.set('p',",".join(splitedp))
         if numberinlist != '':
             # 插入弹幕
-            print('从 '+eptitle+' 向 '+ptitle+' 插入了 '+str(dmdict['count'])+' 条弹幕,共 '+str(len(root.findall('d')))+' 条弹幕')
+            print('从 '+eptitle+' 向 '+ptitle+' 插入了 '+str(len(dmdict['comments']))+' 条弹幕,共 '+str(len(root.findall('d')))+' 条弹幕')
             with open(insertdanmakupath+'/'+str(numberinlist)+'/entry.json','r') as entryjson:
                 entryjsondict = json.load(entryjson)
             entryjsondict['danmaku_count'] = len(root.findall('d'))
@@ -199,8 +207,9 @@ if 'insertdanmaku' in dir() and insertdanmaku is True:
         episodesnonumber = deepcopy(episodes)
         for o in range(episode_count):
             splitedep = re.split(' ',episodesnonumber[o]['episodeTitle'])
-            del splitedep[0]
-            episodesnonumber[o]['episodeTitle'] = ' '.join(splitedep)
+            if len(splitedep) > 1 and splitedep[0][1].isdigit():
+                del splitedep[0]
+                episodesnonumber[o]['episodeTitle'] = ' '.join(splitedep)
             for p in existep:
                 if episodesnonumber[o]['episodeTitle'].lower() == indextitle[p].lower():
                     sortedep[p-1] = episodes[o]
