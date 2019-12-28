@@ -134,14 +134,17 @@ def downloaddanmaku(epid,eptitle,numberinlist='',ptitle=''):
                 shutil.copy2(insertdanmakupath+'/'+str(numberinlist)+'/danmaku.xml.bak', insertdanmakupath+'/'+str(numberinlist)+'/danmaku.xml')
             orixml = ET.parse(insertdanmakupath+'/'+str(numberinlist)+'/danmaku.xml')
             root = orixml.getroot()
-            #删除dmdict中来源为bilibili并且内容已经在原弹幕中出现过的
-            #for i in dmdict:
-            #    if i in [x['d'] for x in root if x['p'][3][9:] == '[bilibili]']:
-            #        del i
             remotedanmakufrombilibili = [x for x in dmdict['comments'] if re.split(',',x['p'])[3][:10] == '[BiliBili]']
             localdanmakufromxml = [x.text for x in root.findall('d')]
             #远程b站弹幕+远程非b站弹幕且与本地b站弹幕不重复的弹幕
-            dmdict['comments'] = {**[','.join(re.split(',',x['p'])[:3]+[re.split(',',x['p'])[3][10:]]) for x in dmdict['comments'] if x in remotedanmakufrombilibili],**[x for x in dmdict['comments'] if x not in remotedanmakufrombilibili and x['m'] not in localdanmakufromxml]}
+
+            def pjoindict(p):
+                remotedanmakufrombilibiliwithouttag = deepcopy(remotedanmakufrombilibili)
+                for x in remotedanmakufrombilibiliwithouttag:
+                    for y in p:
+                        x['p'] = y
+                return remotedanmakufrombilibiliwithouttag
+            dmdict['comments'] = pjoindict([','.join(re.split(',',x['p'])[:3]+[re.split(',',x['p'])[3][10:]]) for x in dmdict['comments'] if x in remotedanmakufrombilibili])+[x for x in dmdict['comments'] if x not in remotedanmakufrombilibili and x['m'] not in localdanmakufromxml]
         else:
             print('在下 '+eptitle)
             root = ET.Element('i')
