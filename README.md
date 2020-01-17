@@ -21,6 +21,27 @@ python DanmakuDownloader.py
 
 使用插入模式时可以不指定番剧名称，脚本会自动读取被插入番剧的标题
 
+使用```-b <av号>```可以下载bilibili弹幕
+
+# 依赖
+
+```python3
+import requests #访问api
+import json #解析弹弹play弹幕
+try:
+    import xml.etree.cElementTree as ET #解析bilibili弹幕
+except ImportError:
+    import xml.etree.ElementTree as ET
+import re #文本替换
+import os #路径检查
+import sys #解析参数
+from getopt import gnu_getopt #同上
+import shutil #操作文件
+from copy import deepcopy #复制变量
+import threading #多线程
+from opencc import OpenCC #番剧标题转简体，方便弹弹play搜索
+```
+
 # TODO
 - [x] 弹幕插入视频
 - [x] 弹幕插入番剧
@@ -33,7 +54,10 @@ python DanmakuDownloader.py
 - [x] 多线程下载
 - [x] 还原被插入的弹幕
 - [x] 插入模式弹幕去重
-- [x] 重写逻辑部分（未上传
+- [x] 重写逻辑部分
+- [x] bilibili av弹幕下载
+- [ ] bilibili md弹幕下载
+- [ ] bilibili弹幕插入
 - [ ] 全弹幕装填
 - [ ] 从搜索到的多部番剧批量下载
 - [ ] 从番剧名称列表文件批量下载
