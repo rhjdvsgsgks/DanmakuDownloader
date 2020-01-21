@@ -56,7 +56,9 @@ from opencc import OpenCC #番剧标题转简体，方便弹弹play搜索
 - [x] 插入模式弹幕去重
 - [x] 重写逻辑部分
 - [x] bilibili av弹幕下载
-- [ ] bilibili md弹幕下载
+- [x] bilibili md弹幕下载
+- [x] bilibili ss弹幕下载
+- [x] bilibili ep弹幕下载
 - [ ] bilibili弹幕插入
 - [ ] 全弹幕装填
 - [ ] 从搜索到的多部番剧批量下载
