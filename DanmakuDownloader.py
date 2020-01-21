@@ -51,6 +51,7 @@ def search():
 
 
 def getanime():
+    global anime
     if len(args) == 0:
         if 'insertdanmaku' in globals() and insertdanmaku is True:
             with open(insertdanmakupath+'/'+os.listdir(insertdanmakupath)[0]+'/entry.json','r') as entryjson:
@@ -117,17 +118,41 @@ def animelistselector():
 
 
 def reslovbili():
+    global cidtitle,animetitle,bilipath
     if bilipath[:2] == 'md':
         #解析md
-        print('还没写')
+        media_id = json.loads(requests.get('https://api.bilibili.com/pgc/review/user?media_id='+bilipath[2:]).text)
+        section = json.loads(requests.get('https://api.bilibili.com/pgc/web/season/section?season_id='+str(media_id['result']['media']['season_id'])).text)
+        avlist = [i['aid' ] for i in section['result']['main_section']['episodes']]
+        if False not in [avlist[0] == i for i in avlist]:
+            #老番，每p都在一个av里，返回av模式
+            bilipath = 'av'+str(avlist[0])
+            reslovbili()
+            return
+        avinfolist = [json.loads(requests.get('https://api.bilibili.com/x/web-interface/view?aid='+str(i)).text)['data'] for i in avlist]
+        plist = [i['pages'][0] for i in avinfolist]
+        animetitle = media_id['result']['media']['title']
+        cidtitle = [[i['cid'] for i in plist],[i['long_title'] for i in section['result']['main_section']['episodes']]]
+    elif bilipath[:2] == 'ss':
+        #解析ss
+        season = json.loads(requests.get('https://api.bilibili.com/pgc/view/web/season?season_id='+bilipath[2:]).text)
+        #ss转md
+        bilipath = 'md'+str(season['result']['media_id'])
+        reslovbili()
+    elif bilipath[:2] == 'ep':
+        #解析ep
+        season = json.loads(requests.get('https://api.bilibili.com/pgc/view/web/season?ep_id='+bilipath[2:]).text)
+        #ep转md
+        bilipath = 'md'+str(season['result']['media_id'])
+        reslovbili()
     elif bilipath[:2] == 'av':
         #解析av
-        global plist,animetitle
         avinfo = json.loads(requests.get('https://api.bilibili.com/x/web-interface/view?aid='+bilipath[2:]).text)['data']
         plist = avinfo['pages']
         animetitle = avinfo['title']
+        cidtitle = [[i['cid'] for i in plist],[i['part'] for i in plist]]
     else:
-        print('仅支持av或md')
+        print('仅支持av md ss ep')
 
 
 def downloaddanmaku(epid,eptitle,numberinlist='',ptitle=''):
@@ -213,7 +238,7 @@ def createtasklist():
             print('从bilibili插入')
         else:
             print('从bilibili下载')
-            threads = [threading.Thread(target=bilidownloaddanmaku,args=[i['cid'],i['part']]) for i in plist]
+            threads = [threading.Thread(target=bilidownloaddanmaku,args=[cidtitle[0][i],cidtitle[1][i]]) for i in range(len(cidtitle[0]))]
     else:
         if 'insertdanmaku' in globals() and insertdanmaku is True:
             # 插入弹幕
