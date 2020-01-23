@@ -175,9 +175,8 @@ def downloaddanmaku(epid,eptitle,numberinlist='',ptitle=''):
 
             def pjoindict(p):
                 remotedanmakufrombilibiliwithouttag = deepcopy(remotedanmakufrombilibili)
-                for x in remotedanmakufrombilibiliwithouttag:
-                    for y in p:
-                        x['p'] = y
+                for x in range(len(remotedanmakufrombilibiliwithouttag)):
+                    remotedanmakufrombilibiliwithouttag[x]['p'] = p[x]
                 return remotedanmakufrombilibiliwithouttag
             dmdict['comments'] = pjoindict([','.join(re.split(',',x['p'])[:3]+[re.split(',',x['p'])[3][10:]]) for x in dmdict['comments'] if x in remotedanmakufrombilibili])+[x for x in dmdict['comments'] if x not in remotedanmakufrombilibili and x['m'] not in localdanmakufromxml]
         else:
@@ -191,7 +190,9 @@ def downloaddanmaku(epid,eptitle,numberinlist='',ptitle=''):
                 # danmaku2ass遇到发送者包含非数字内容会出错
                 splitedp[3] = '0'
             splitedp.insert(2,'25')
-            splitedp.extend(['0','0','0'])
+            splitedp.insert(4,'0')
+            splitedp.insert(5,'0')
+            splitedp.append('0')
             d.set('p',",".join(splitedp))
         if numberinlist != '':
             # 插入弹幕
