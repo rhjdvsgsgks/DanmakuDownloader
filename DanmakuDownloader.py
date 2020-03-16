@@ -213,7 +213,7 @@ def downloaddanmaku(epid,eptitle,numberinlist='',ptitle=''):
             if os.path.exists('danmaku2ass.py') and os.path.isfile('danmaku2ass.py'):
                 if not os.path.exists(subtitlepath+animetitle.replace('/','\\')):
                     os.makedirs(subtitlepath+animetitle.replace('/','\\'))
-                os.system('python danmaku2ass.py -s 3840x2160 -fs 85 -dm 20 -ds 20 -p 103 -o '+'\"'+subtitlepath+animetitle.replace('/','\\')+'/'+eptitle.replace('/','\\')+'.ass'+'\" \"'+downloadpath+animetitle.replace('/','\\')+'/'+eptitle.replace('/','\\')+'.xml'+'\"')
+                os.system('python danmaku2ass.py -s 3840x2160 -fs 85 -dm 20 -ds 20 -p 103 -o '+'\"'+subtitlepath+animetitle.replace('/','\\').replace('`','\\`')+'/'+eptitle.replace('/','\\').replace('`','\\`')+'.ass'+'\" \"'+downloadpath+animetitle.replace('/','\\').replace('`','\\`')+'/'+eptitle.replace('/','\\')+'.xml'+'\"').replace('`','\\`')
     else:
         print('跳过 '+eptitle)
 
@@ -229,7 +229,7 @@ def bilidownloaddanmaku(cid,part):
     if os.path.exists('danmaku2ass.py') and os.path.isfile('danmaku2ass.py'):
         if not os.path.exists(subtitlepath+animetitle.replace('/','\\')):
             os.makedirs(subtitlepath+animetitle.replace('/','\\'))
-        os.system('python danmaku2ass.py -s 3840x2160 -fs 85 -dm 20 -ds 20 -p 103 -o '+'\"'+subtitlepath+animetitle.replace('/','\\')+'/'+part.replace('/','\\')+'.ass'+'\" \"'+downloadpath+animetitle.replace('/','\\')+'/'+part.replace('/','\\')+'.xml'+'\"')
+        os.system('python danmaku2ass.py -s 3840x2160 -fs 85 -dm 20 -ds 20 -p 103 -o '+'\"'+subtitlepath+animetitle.replace('/','\\').replace('`','\\`')+'/'+part.replace('/','\\').replace('`','\\`')+'.ass'+'\" \"'+downloadpath+animetitle.replace('/','\\').replace('`','\\`')+'/'+part.replace('/','\\')+'.xml'+'\"').replace('`','\\`')
 
 
 def createtasklist():
