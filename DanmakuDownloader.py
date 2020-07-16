@@ -39,7 +39,17 @@ def restore():
     if True not in bakexistindir:
         print('没找到 .bak')
         return
-    [shutil.move(insertdanmakupath+'/'+i+'/danmaku.xml.bak', insertdanmakupath+'/'+i+'/danmaku.xml') for i in os.listdir(insertdanmakupath) if os.path.exists(insertdanmakupath+'/'+i+'/danmaku.xml.bak') and os.path.isfile(insertdanmakupath+'/'+i+'/danmaku.xml.bak')]
+
+    def restoreconfirmed(i):
+        shutil.move(insertdanmakupath+'/'+i+'/danmaku.xml.bak', insertdanmakupath+'/'+i+'/danmaku.xml')
+        with open(insertdanmakupath+'/'+i+'/entry.json','r') as entryjson:
+            entryjsondict = json.load(entryjson)
+        orixml = ET.parse(insertdanmakupath+'/'+i+'/danmaku.xml')
+        root = orixml.getroot()
+        entryjsondict['danmaku_count'] = len(root.findall('d'))
+        with open(insertdanmakupath+'/'+i+'/entry.json','w') as entryjson:
+            json.dump(entryjsondict,entryjson)
+    [restoreconfirmed(i) for i in os.listdir(insertdanmakupath) if os.path.exists(insertdanmakupath+'/'+i+'/danmaku.xml.bak') and os.path.isfile(insertdanmakupath+'/'+i+'/danmaku.xml.bak')]
 
 
 def search():
@@ -153,6 +163,7 @@ def reslovbili():
         cidtitle = [[i['cid'] for i in plist],[i['part'] for i in plist]]
     else:
         print('仅支持av md ss ep')
+        exit()
 
 
 def downloaddanmaku(epid,eptitle,numberinlist='',ptitle=''):
@@ -213,7 +224,7 @@ def downloaddanmaku(epid,eptitle,numberinlist='',ptitle=''):
             if os.path.exists('danmaku2ass.py') and os.path.isfile('danmaku2ass.py'):
                 if not os.path.exists(subtitlepath+animetitle.replace('/','\\')):
                     os.makedirs(subtitlepath+animetitle.replace('/','\\'))
-                os.system('python danmaku2ass.py -s 3840x2160 -fs 85 -dm 20 -ds 20 -p 103 -o '+'\"'+subtitlepath+animetitle.replace('/','\\').replace('`','\\`')+'/'+eptitle.replace('/','\\').replace('`','\\`')+'.ass'+'\" \"'+downloadpath+animetitle.replace('/','\\').replace('`','\\`')+'/'+eptitle.replace('/','\\').replace('`','\\`')+'.xml'+'\"')
+                os.system('python danmaku2ass.py -s 3840x2160 -fs 100 -dm 20 -ds 20 -p 103 -o '+'\"'+subtitlepath+animetitle.replace('/','\\').replace('`','\\`')+'/'+eptitle.replace('/','\\').replace('`','\\`')+'.ass'+'\" \"'+downloadpath+animetitle.replace('/','\\').replace('`','\\`')+'/'+eptitle.replace('/','\\').replace('`','\\`')+'.xml'+'\"')
     else:
         print('跳过 '+eptitle)
 
@@ -276,25 +287,33 @@ def createtasklist():
                         if episodesnonumber[o]['episodeTitle'].lower() == indextitle[p].lower():
                             sortedep[p-1] = episodes[o]
                             episodes[o] = ''
-                if len([x for x in sortedep if x != '']) != epcount:
-                    #判断非空位
-                    print('有多出来的,使用id匹配')
-                    unusedepisodes = [x for x in indextitle if sortedep[x-1] == '']
-                    for i in unusedepisodes:
-                        tempinput = input(str(i)+' '+indextitle[i]+' 是 '+episodes[i-1]['episodeTitle']+' ? [Y/n] ')
-                        if tempinput == 'y' or tempinput == '':
-                            sortedep[i-1] = episodes[i-1]
-                            episodes[i-1] = ''
-                if len([sortedep[x-1] for x in indextitle.keys() if sortedep[x-1] == '']) > 0:
-                    #判断在按本地ep排序的episodes中有几个空位
-                    print('还是有多的，使用手动匹配')
-                    for i in indextitle.keys():
-                        if sortedep[i-1] == '':
-                            for k in [j for j in range(len(episodes)) if episodes[j] != '']:
-                                print(str(k)+' '+episodes[k]['episodeTitle'])
-                            selectepisode = int(input(str(i)+' '+indextitle[i]+'是? '))
-                            sortedep[i-1] = episodes[selectepisode]
-                            episodes[selectepisode] = ''
+
+                def extrasort(bias=[[0,0]]):
+                    if len([x for x in sortedep if x != '']) != epcount:
+                        #判断非空位
+                        print('有多出来的,使用id匹配')
+                        unusedepisodes = [x for x in indextitle if sortedep[x-1] == '']
+                        for i in unusedepisodes:
+                            tempinput = input(str(i)+' '+indextitle[i]+' 是 '+episodes[i-1-[x for x in bias if x[0] <= i][-1][1]]['episodeTitle']+' ? [Y/n] ')
+                            if tempinput == 'y' or tempinput == '':
+                                sortedep[i-1] = episodes[i-1-[x for x in bias if x[0] <= i][-1][1]]
+                                episodes[i-1-[x for x in bias if x[0] <= i][-1][1]] = ''
+                            else:
+                                break
+
+                    if len([sortedep[x-1] for x in indextitle.keys() if sortedep[x-1] == '']) > 0:
+                        #判断在按本地ep排序的episodes中有几个空位
+                        print('还是有多的，使用手动匹配')
+                        for i in indextitle.keys():
+                            if sortedep[i-1] == '':
+                                for k in [j for j in range(len(episodes)) if episodes[j] != '']:
+                                    print(str(k)+' '+episodes[k]['episodeTitle'])
+                                selectepisode = int(input(str(i)+' '+indextitle[i]+'是? '))
+                                sortedep[i-1] = episodes[selectepisode]
+                                episodes[selectepisode] = ''
+                                bias.append([i,i-1-selectepisode])
+                                extrasort(bias)
+                extrasort()
                 threads = [threading.Thread(target=downloaddanmaku,args=[sortedep[i-1]['episodeId'],sortedep[i-1]['episodeTitle'],indexep[i],indextitle[i]]) for i in indexep.keys()]
             else:
                 # 没附加p
