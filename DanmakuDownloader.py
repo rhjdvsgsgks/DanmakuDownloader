@@ -231,16 +231,41 @@ def downloaddanmaku(epid,eptitle,numberinlist='',ptitle=''):
 
 def bilidownloaddanmaku(cid,part):
     print('在下 '+part)
-    response = requests.get('https://comment.bilibili.com/'+str(cid)+'.xml')
-    response.encoding = 'utf-8'
-    xml = response.text
+
+    def getxml():
+        response = requests.get('https://comment.bilibili.com/'+str(cid)+'.xml')
+        response.encoding = 'utf-8'
+        try:
+            ET.fromstring(response.text)
+        except ET.ParseError:
+            try:
+                iferr = json.loads(response.text)
+            except ValueError :
+                print('未知的错误出现了')
+                print(response.text)
+            else:
+                if iferr['code'] == -412:
+                    getxml()
+                else:
+                    print('未知的错误出现了')
+                    print(response.text)
+        except BaseException:
+            print('未知的错误出现了')
+            print(response.text)
+        else:
+            print(part+' 下好了')
+            return response.text
+    xml = getxml()
+    if type(xml) is not str:
+        print('这里可能有个奇怪的 bug ，偶尔获取到的 xml 可能是 None ，明明在前面解析时就应该失败并被捕获的。\n如果你遇到了这种情况请反馈如何复现')
+        exit()
     if not os.path.exists(downloadpath+animetitle.replace('/','\\')):
         os.makedirs(downloadpath+animetitle.replace('/','\\'))
     open(downloadpath+animetitle.replace('/','\\')+'/'+part.replace('/','\\')+'.xml','w').write(xml)
     if os.path.exists('danmaku2ass.py') and os.path.isfile('danmaku2ass.py'):
         if not os.path.exists(subtitlepath+animetitle.replace('/','\\')):
             os.makedirs(subtitlepath+animetitle.replace('/','\\'))
-        os.system('python danmaku2ass.py -s 3840x2160 -fs 85 -dm 20 -ds 20 -p 103 -o '+'\"'+subtitlepath+animetitle.replace('/','\\').replace('`','\\`')+'/'+part.replace('/','\\').replace('`','\\`')+'.ass'+'\" \"'+downloadpath+animetitle.replace('/','\\').replace('`','\\`')+'/'+part.replace('/','\\').replace('`','\\`')+'.xml'+'\"')
+        os.system('python danmaku2ass.py -s 3840x2160 -fs 100 -dm 20 -ds 20 -p 103 -o '+'\"'+subtitlepath+animetitle.replace('/','\\').replace('`','\\`')+'/'+part.replace('/','\\').replace('`','\\`')+'.ass'+'\" \"'+downloadpath+animetitle.replace('/','\\').replace('`','\\`')+'/'+part.replace('/','\\').replace('`','\\`')+'.xml'+'\"')
 
 
 def createtasklist():
