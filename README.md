@@ -15,13 +15,15 @@ python DanmakuDownloader.py
 ```
 如果```danmaku2ass.py```存在，将自动同时保存弹幕为ass字幕  
 
+如果```bcc2ass.py```存在，将自动在下载 bilibili cc 字幕时保存字幕为 srt 字幕  
+
 使用```-i <视频路径>```可将弹幕插入到视频中
 
 使用```-i <视频路径> -r```可还原被插入的弹幕文件
 
 使用插入模式时可以不指定番剧名称，脚本会自动读取被插入番剧的标题
 
-使用```-b <av号>```可以下载bilibili弹幕
+使用```-b/c <av号>```可以下载bilibili弹幕/ cc 字幕
 
 # 依赖
 
