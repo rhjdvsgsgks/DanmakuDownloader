@@ -17,17 +17,24 @@ from opencc import OpenCC
 
 
 def detectargs():
-    global args,insertdanmaku,insertdanmakupath,downloadfrombilibili,restoreinsertdanmaku,bilipath
-    optlist, args = gnu_getopt(sys.argv[1:],'i:rb:')
+    global args,insertdanmaku,insertdanmakupath,downloaddanmakufrombilibili,restoreinsertdanmaku,bilipath,downloadccsubtitlefrombilibili
+    optlist, args = gnu_getopt(sys.argv[1:],'i:rbc')
 
     for m in range(len(optlist)):
         if optlist[m][0] == '-i':
             insertdanmakupath = optlist[m][1]
             if 'insertdanmakupath' in globals() and os.path.exists(insertdanmakupath) and os.path.isdir(insertdanmakupath):
                 insertdanmaku = True
-        if optlist[m][0] == '-b':
-            downloadfrombilibili = True
-            bilipath = optlist[m][1]
+        if optlist[m][0] == '-b' or optlist[m][0] == '-c':
+            for i in range(len(args)):
+                if i == 0:
+                    bilipath = args[i]
+                else:
+                    bilipath = bilipath+' '+args[i]
+            if optlist[m][0] == '-b':
+                downloaddanmakufrombilibili = True
+            if optlist[m][0] == '-c':
+                downloadccsubtitlefrombilibili = True
 
     for m in range(len(optlist)):
         if optlist[m][0] == '-r' and insertdanmaku:
@@ -224,7 +231,7 @@ def downloaddanmaku(epid,eptitle,numberinlist='',ptitle=''):
             if os.path.exists('danmaku2ass.py') and os.path.isfile('danmaku2ass.py'):
                 if not os.path.exists(subtitlepath+animetitle.replace('/','\\')):
                     os.makedirs(subtitlepath+animetitle.replace('/','\\'))
-                os.system('python danmaku2ass.py -s 3840x2160 -fs 100 -dm 20 -ds 20 -p 103 -o '+'\"'+subtitlepath+animetitle.replace('/','\\').replace('`','\\`')+'/'+eptitle.replace('/','\\').replace('`','\\`')+'.ass'+'\" \"'+downloadpath+animetitle.replace('/','\\').replace('`','\\`')+'/'+eptitle.replace('/','\\').replace('`','\\`')+'.xml'+'\"')
+                os.system('python danmaku2ass.py -s 3840x2160 -fs 100 -dm 20 -ds 20 -p 200 -o '+'\"'+subtitlepath+animetitle.replace('/','\\').replace('`','\\`')+'/'+eptitle.replace('/','\\').replace('`','\\`')+'.ass'+'\" \"'+downloadpath+animetitle.replace('/','\\').replace('`','\\`')+'/'+eptitle.replace('/','\\').replace('`','\\`')+'.xml'+'\"')
     else:
         print('跳过 '+eptitle)
 
@@ -265,17 +272,53 @@ def bilidownloaddanmaku(cid,part):
     if os.path.exists('danmaku2ass.py') and os.path.isfile('danmaku2ass.py'):
         if not os.path.exists(subtitlepath+animetitle.replace('/','\\')):
             os.makedirs(subtitlepath+animetitle.replace('/','\\'))
-        os.system('python danmaku2ass.py -s 3840x2160 -fs 100 -dm 20 -ds 20 -p 103 -o '+'\"'+subtitlepath+animetitle.replace('/','\\').replace('`','\\`')+'/'+part.replace('/','\\').replace('`','\\`')+'.ass'+'\" \"'+downloadpath+animetitle.replace('/','\\').replace('`','\\`')+'/'+part.replace('/','\\').replace('`','\\`')+'.xml'+'\"')
+        os.system('python danmaku2ass.py -s 3840x2160 -fs 100 -dm 20 -ds 20 -p 200 -o '+'\"'+subtitlepath+animetitle.replace('/','\\').replace('`','\\`')+'/'+part.replace('/','\\').replace('`','\\`')+'.ass'+'\" \"'+downloadpath+animetitle.replace('/','\\').replace('`','\\`')+'/'+part.replace('/','\\').replace('`','\\`')+'.xml'+'\"')
+
+
+def bilidownloadccsubtitle(cid,part):
+    ccsubtitles = json.loads(requests.get('https://api.bilibili.com/x/v2/dm/view?type=1&oid='+str(cid)).text)['data']['subtitle']['subtitles']
+    for i in ccsubtitles:
+        haveauthor = 'author' in i
+        if haveauthor:
+            print('在下 '+part+' 中 '+str(i['author']['mid'])+' 发的 '+i['lan']+' 字幕')
+        else:
+            print('在下 '+part+' 的 '+i['lan']+' 字幕')
+        ccsubtitlejson = requests.get(i['subtitle_url']).text
+        if not os.path.exists(subtitlepath+animetitle.replace('/','\\')):
+            os.makedirs(subtitlepath+animetitle.replace('/','\\'))
+        if haveauthor:
+            open(subtitlepath+animetitle.replace('/','\\')+'/'+part.replace('/','\\')+'_'+str(i['author']['mid'])+'_'+i['lan']+'.json','w').write(ccsubtitlejson)
+        else:
+            open(subtitlepath+animetitle.replace('/','\\')+'/'+part.replace('/','\\')+'_'+i['lan']+'.json','w').write(ccsubtitlejson)
+        if os.path.exists('bcc2ass.py') and os.path.isfile('bcc2ass.py'):
+            if haveauthor:
+                os.system('python bcc2ass.py -i '+'\"'+subtitlepath+animetitle.replace('/','\\').replace('`','\\`')+'/'+part.replace('/','\\').replace('`','\\`')+'_'+str(i['author']['mid'])+'_'+i['lan']+'.json'+'\" -o \"'+subtitlepath+animetitle.replace('/','\\').replace('`','\\`')+'/'+part.replace('/','\\').replace('`','\\`')+'_'+str(i['author']['mid'])+'_'+i['lan']+'\"')
+            else:
+                os.system('python bcc2ass.py -i '+'\"'+subtitlepath+animetitle.replace('/','\\').replace('`','\\`')+'/'+part.replace('/','\\').replace('`','\\`')+'_'+i['lan']+'.json'+'\" -o \"'+subtitlepath+animetitle.replace('/','\\').replace('`','\\`')+'/'+part.replace('/','\\').replace('`','\\`')+'_'+i['lan']+'\"')
+        if haveauthor:
+            print(part+' 中 '+str(i['author']['mid'])+' 发的 '+i['lan']+' 字幕 下好了')
+        else:
+            print(part+' 的 '+i['lan']+' 字幕 下好了')
 
 
 def createtasklist():
     global threads
-    if 'downloadfrombilibili' in globals() and downloadfrombilibili is True:
-        if 'insertdanmaku' in globals() and insertdanmaku is True:
-            print('从bilibili插入')
-        else:
-            print('从bilibili下载')
-            threads = [threading.Thread(target=bilidownloaddanmaku,args=[cidtitle[0][i],cidtitle[1][i]]) for i in range(len(cidtitle[0]))]
+    if 'downloaddanmakufrombilibili' in globals() and downloaddanmakufrombilibili is True or 'downloadccsubtitlefrombilibili' in globals() and downloadccsubtitlefrombilibili is True:
+        if 'downloaddanmakufrombilibili' in globals() and downloaddanmakufrombilibili is True:
+            if 'insertdanmaku' in globals() and insertdanmaku is True:
+                print('从bilibili插入弹幕')
+            else:
+                print('从bilibili下载弹幕')
+                threads = [threading.Thread(target=bilidownloaddanmaku,args=[cidtitle[0][i],cidtitle[1][i]]) for i in range(len(cidtitle[0]))]
+        if 'downloadccsubtitlefrombilibili' in globals() and downloadccsubtitlefrombilibili is True:
+            if 'insertdanmaku' in globals() and insertdanmaku is True:
+                print('从bilibili插入字幕')
+            else:
+                print('从bilibili下载字幕')
+                if 'threads' in globals() and type(threads) is list:
+                    threads.extend([threading.Thread(target=bilidownloadccsubtitle,args=[cidtitle[0][i],cidtitle[1][i]]) for i in range(len(cidtitle[0]))])
+                else:
+                    threads = [threading.Thread(target=bilidownloadccsubtitle,args=[cidtitle[0][i],cidtitle[1][i]]) for i in range(len(cidtitle[0]))]
     else:
         if 'insertdanmaku' in globals() and insertdanmaku is True:
             # 插入弹幕
@@ -352,7 +395,7 @@ detectargs()
 if 'restoreinsertdanmaku' in globals() and restoreinsertdanmaku:
     restore()
 else:
-    if 'downloadfrombilibili' in globals() and downloadfrombilibili is True:
+    if 'downloaddanmakufrombilibili' in globals() and downloaddanmakufrombilibili is True or 'downloadccsubtitlefrombilibili' in globals() and downloadccsubtitlefrombilibili is True:
         #解析b站然后直接创建threads
         reslovbili()
         createtasklist()
